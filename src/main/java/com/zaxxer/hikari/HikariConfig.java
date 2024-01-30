@@ -38,6 +38,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static com.zaxxer.hikari.util.UtilityElf.getNullIfEmpty;
+import static com.zaxxer.hikari.util.UtilityElf.maskPasswordInJdbcUrl;
 import static com.zaxxer.hikari.util.UtilityElf.safeIsAssignableFrom;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -1120,11 +1121,14 @@ public class HikariConfig implements HikariConfigMXBean
             else if ("transactionIsolation".equals(prop) && transactionIsolationName == null) {
                value = "default";
             }
-            else if (prop.matches("scheduledExecutorService|threadFactory") && value == null) {
+            else if ("scheduledExecutorService".equals(prop) && value == null) {
+               value = "internal";
+            }
+            else if ("threadFactory".equals(prop) && value == null) {
                value = "internal";
             }
             else if (prop.contains("jdbcUrl") && value instanceof String) {
-               value = ((String)value).replaceAll("([?&;][^&#;=]*[pP]assword=)[^&#;]*", "$1<masked>");
+               value = maskPasswordInJdbcUrl((String) value);
             }
             else if (prop.contains("password")) {
                value = "<masked>";

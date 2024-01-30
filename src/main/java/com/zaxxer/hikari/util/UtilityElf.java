@@ -18,6 +18,7 @@ package com.zaxxer.hikari.util;
 
 import java.util.Locale;
 import java.util.concurrent.*;
+import java.util.regex.Pattern;
 
 import static java.lang.Thread.currentThread;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -28,18 +29,35 @@ import static java.util.concurrent.TimeUnit.SECONDS;
  */
 public final class UtilityElf
 {
+
+   private static final Pattern PASSWORD_MASKING_PATTERN = Pattern.compile("([?&;][^&#;=]*[pP]assword=)[^&#;]*");
+
    private UtilityElf()
    {
       // non-constructable
    }
 
+   public static String maskPasswordInJdbcUrl(String jdbcUrl)
+   {
+      return PASSWORD_MASKING_PATTERN.matcher(jdbcUrl).replaceAll("$1<masked>");
+   }
+
    /**
     *
-    * @return null if string is null or empty
+    * @return null if string is null or empty, trimmed string otherwise
    */
    public static String getNullIfEmpty(final String text)
    {
-      return text == null ? null : text.trim().isEmpty() ? null : text.trim();
+      if (text == null) {
+         return null;
+      }
+
+      var trimmed = text.trim();
+
+      if (trimmed.isEmpty()) {
+         return null;
+      }
+      return trimmed;
    }
 
    /**
@@ -91,12 +109,14 @@ public final class UtilityElf
 
       try {
          var loaded = UtilityElf.class.getClassLoader().loadClass(className);
-         if (args.length == 0) {
+         int totalArgs = args.length;
+
+         if (totalArgs == 0) {
             return clazz.cast(loaded.getDeclaredConstructor().newInstance());
          }
 
-         var argClasses = new Class<?>[args.length];
-         for (int i = 0; i < args.length; i++) {
+         var argClasses = new Class<?>[totalArgs];
+         for (int i = 0; i < totalArgs; i++) {
             argClasses[i] = args[i].getClass();
          }
          var constructor = loaded.getConstructor(argClasses);
